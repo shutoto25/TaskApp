@@ -5,8 +5,6 @@ import io.realm.annotations.PrimaryKey
 import java.io.Serializable
 import java.util.*
 
-//シリアライズがよく分からない
-// またopen修飾子を付けるのは、Realmが内部的にTaskを継承したクラスを作成して利用するためです？？？？
 open class Task : RealmObject(), Serializable {
     /**
      * id

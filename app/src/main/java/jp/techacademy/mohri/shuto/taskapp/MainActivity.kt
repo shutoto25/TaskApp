@@ -1,17 +1,23 @@
 package jp.techacademy.mohri.shuto.taskapp
 
+import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.Snackbar
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import io.realm.Realm
-import io.realm.RealmChangeListener
 import io.realm.Sort
 
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
+
+/**
+ * Intent Extra情報(Task Id)
+ */
+const val EXTRA_INTENT_TASK = "jp.techacademy.mohri.shuto.taskapp.EXTRA_INTENT_TASK"
+
 
 class MainActivity : AppCompatActivity() {
     /**
@@ -26,15 +32,6 @@ class MainActivity : AppCompatActivity() {
      * レルム.
      */
     private lateinit var mRealm: Realm
-    /**
-     * レルムリスナー.
-     */
-    private val mRealmListener = object : RealmChangeListener<Realm> {
-        override fun onChange(element: Realm) {
-            Log.d(TAG, "$CLASS_NAME.onChange")
-            reloadListView()
-        }
-    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,20 +39,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // 初期化設定.
         mRealm = Realm.getDefaultInstance()
+        mTaskAdapter = TaskAdapter(this@MainActivity)
 
         // リスナーセット
         setListener()
 
-        // ListViewの設定
-        // @はアノテーション的な？
-        mTaskAdapter = TaskAdapter(this@MainActivity)
-
-        // テスト用のタスクを作成
-        addTaskForTest()
-        // 再描画
+        // リスト再描画
         reloadListView()
-
     }
 
 
@@ -86,45 +78,60 @@ class MainActivity : AppCompatActivity() {
 
 
     /**
-     * テスト用データ作成
-     */
-    private fun addTaskForTest() {
-        Log.d(TAG, "$CLASS_NAME.addTaskForTest")
-
-        val task = Task()
-        task.id = 0
-        task.title = "作業"
-        task.contents = "プログラムを書いてPUSHする"
-        task.date = Date()
-        mRealm.beginTransaction()
-        mRealm.copyToRealmOrUpdate(task)
-        mRealm.commitTransaction()
-    }
-
-
-    /**
      * リスナーセット.
      */
     private fun setListener() {
         Log.d(TAG, "$CLASS_NAME.setListener")
 
         // Realmデータベース変更リスナー(追加・編集・削除など)
-        mRealm.addChangeListener(mRealmListener)
+        mRealm.addChangeListener { element ->
+            // リスト再描画.
+            reloadListView()
+        }
 
         // フローティングボタンクリックリスナー
         fabAdd.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
+            // 新規タスク画面起動.
+            val newTaskIntent = Intent(this@MainActivity, InputActivity::class.java)
+            startActivity(newTaskIntent)
         }
 
         // リストビュークリックリスナー
         lvTask.setOnItemClickListener { parent, view, position, id ->
-            // 編集画面起動
+            // クリックしたリスト(parent)のアイテムデータを取得.
+            val task = parent.adapter.getItem(position) as Task
+            // 取得したデータからIdを取得し,Extra情報に付与して編集画面起動.
+            val editIntent = Intent(this@MainActivity, InputActivity::class.java)
+            editIntent.putExtra(EXTRA_INTENT_TASK, task.id)
+            startActivity(editIntent)
         }
 
         // リストビュー長タップリスナー
         lvTask.setOnItemLongClickListener { parent, view, position, id ->
-            // 削除
+            // クリックしたリストのアイテムデータを取得.
+            val task = parent.adapter.getItem(position) as Task
+
+            val dialogBuilder = AlertDialog.Builder(this@MainActivity)
+            dialogBuilder.setTitle("削除")
+            dialogBuilder.setMessage("${task.title}を削除しますか？")
+
+            dialogBuilder.setPositiveButton("OK") { _, _ ->
+                val result = mRealm.where(Task::class.java).equalTo("id", task.id).findAll()
+
+                mRealm.beginTransaction()
+                result.deleteAllFromRealm()
+                mRealm.commitTransaction()
+
+                // リスト再描画
+                reloadListView()
+                Toast.makeText(this@MainActivity, "削除しました", Toast.LENGTH_SHORT).show()
+            }
+            dialogBuilder.setNegativeButton("CANCEL", null)
+
+            // ダイアログ生成/表示
+            val dialog = dialogBuilder.create()
+            dialog.show()
+
             true
         }
     }

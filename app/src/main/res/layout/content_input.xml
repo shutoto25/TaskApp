@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="16dp"
+    android:paddingTop="16dp"
+    android:paddingRight="16dp"
+    android:paddingBottom="16dp"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".InputActivity"
+    tools:showIn="@layout/activity_input">
+
+    <EditText
+        android:id="@+id/etTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="タイトル" />
+
+    <EditText
+        android:id="@+id/etContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etTitle"
+        android:hint="内容" />
+
+    <Button
+        android:id="@+id/btDate"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etContent"
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@id/btTimes"
+        android:text="----/--/--" />
+
+    <Button
+        android:id="@+id/btTimes"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etContent"
+        android:layout_alignParentRight="true"
+        android:text="--:--" />
+
+    <Button
+        android:id="@+id/btDone"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btTimes"
+        android:layout_alignParentRight="true"
+        android:text="決定" />
+</RelativeLayout>

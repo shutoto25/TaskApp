@@ -1,5 +1,8 @@
 package jp.techacademy.mohri.shuto.taskapp
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
@@ -122,6 +125,9 @@ class MainActivity : AppCompatActivity() {
                 result.deleteAllFromRealm()
                 mRealm.commitTransaction()
 
+                // アラーム解除.
+                cancelAlarm(task)
+
                 // リスト再描画
                 reloadListView()
                 Toast.makeText(this@MainActivity, "削除しました", Toast.LENGTH_SHORT).show()
@@ -136,6 +142,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Realmからタスクを削除するタイミングでアラームを解除.
+     * @param task 長タップされたタスク.
+     *
+     */
+    private fun cancelAlarm(task: Task) {
+        //セットした時と同じIntent、PendingIntentを作成.
+        val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
+        val resultPendingIntent = PendingIntent.getBroadcast(
+            this@MainActivity,
+            task.id,
+            resultIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        // アラームをキャンセル.
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(resultPendingIntent)
+    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.

@@ -1,7 +1,11 @@
 package jp.techacademy.mohri.shuto.taskapp
 
+import android.app.AlarmManager
 import android.app.DatePickerDialog
+import android.app.PendingIntent
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -128,6 +132,30 @@ class InputActivity : AppCompatActivity() {
         realm.commitTransaction()
 
         realm.close()
+
+        // PendingIntentで指定時間にアラームを設定
+        setAlarm(calendar)
+    }
+
+
+    /**
+     * 指定時間にアラームを設定
+     * @param calendar アラーム開始時刻
+     */
+    private fun setAlarm(calendar: Calendar) {
+        Log.d(TAG, "$CLASS_NAME.setListener")
+
+        val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
+        resultIntent.putExtra(EXTRA_INTENT_TASK, mTask!!.id)
+        val resultPendingIntent = PendingIntent.getBroadcast(
+            this,
+            mTask!!.id,
+            resultIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        // UTC時間を指定.画面スリープ中でもアラームを発行.
+        alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, resultPendingIntent)
     }
 
 

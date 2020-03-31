@@ -51,4 +51,17 @@
         android:layout_below="@id/btTimes"
         android:layout_alignParentRight="true"
         android:text="決定" />
+
+    <TextView
+        android:id="@+id/tvCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btDate"
+        android:text="カテゴリー選択：" />
+
+    <Spinner
+        android:id="@+id/spCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tvCategory" />
 </RelativeLayout>

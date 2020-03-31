@@ -12,6 +12,10 @@ open class Task : RealmObject(), Serializable {
     @PrimaryKey
     var id: Int = 0
     /**
+     * カテゴリー
+     */
+    var category: String = ""
+    /**
      * タイトル
      */
     var title: String = ""

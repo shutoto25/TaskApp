@@ -11,7 +11,11 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import android.support.v7.widget.Toolbar
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import io.realm.Realm
+import jp.techacademy.mohri.shuto.taskapp.MainActivity.Companion.spinnerItems
 import kotlinx.android.synthetic.main.content_input.*
 import java.util.*
 
@@ -29,7 +33,7 @@ class InputActivity : AppCompatActivity() {
     private var mHour = 0
     private var mMinute = 0
     private var mTask: Task? = null
-
+    private var mSpinner = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "$CLASS_NAME.onCreate")
@@ -45,6 +49,12 @@ class InputActivity : AppCompatActivity() {
         supportActionBar.let {
             supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         }
+
+        // スピナー設定.
+        val spinnerAdapter = ArrayAdapter(
+            applicationContext, android.R.layout.simple_spinner_item, spinnerItems)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spCategory.adapter = spinnerAdapter
 
         // Extra情報からTaskのidを取得して、idからTaskのインスタンスを取得する
         val intent = intent
@@ -68,6 +78,15 @@ class InputActivity : AppCompatActivity() {
         } else {
             // タスク内容更新時.
             // 登録済みのタスク内容を取得.
+            // TODO クソコードをどうにかしてくれ
+            var index = 0
+            for (i in spinnerItems) {
+                if (i == mTask!!.category) {
+                    spCategory.setSelection(index)
+                    mSpinner = i
+                }
+                index++
+            }
             etTitle.setText(mTask!!.title)
             etContent.setText(mTask!!.contents)
 
@@ -114,6 +133,8 @@ class InputActivity : AppCompatActivity() {
             // id設定(タスクがnullでなければ現在タスク数+1).
             mTask!!.id = identifier
         }
+        // カテゴリー設定.
+        mTask!!.category = mSpinner
 
         // タイトル設定.
         val inputTitle = etTitle.text.toString()
@@ -184,6 +205,7 @@ class InputActivity : AppCompatActivity() {
             datePickerDialog.show()
         }
 
+
         // Timesボタン.
         btTimes.setOnClickListener {
             val timePickerDialog = TimePickerDialog(
@@ -199,6 +221,23 @@ class InputActivity : AppCompatActivity() {
             // ダイアログ表示.
             timePickerDialog.show()
         }
+
+
+        // スピナー選択.
+        spCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            // アイテム選択
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val spinnerParent = parent as Spinner
+                val item = spinnerParent.selectedItem as String
+                mSpinner = item
+            }
+            // アイテム未選択
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // ここtでは特に何もしない
+            }
+        }
+
 
         // Doneボタン
         btDone.setOnClickListener {

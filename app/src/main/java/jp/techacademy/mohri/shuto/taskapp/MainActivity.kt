@@ -2,7 +2,6 @@ package jp.techacademy.mohri.shuto.taskapp
 
 import android.app.AlarmManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
@@ -10,6 +9,10 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.Toast
 import io.realm.Realm
 import io.realm.Sort
@@ -32,9 +35,27 @@ class MainActivity : AppCompatActivity() {
      */
     private lateinit var mTaskAdapter: TaskAdapter
     /**
-     * レルム.
+     * Realm.
      */
     private lateinit var mRealm: Realm
+    /**
+     * 検索カテゴリー.
+     */
+    private var mSearchCategory = ""
+
+    companion object {
+        /**
+         * スピナーアイテム.
+         * TODO 自分で追加編集できるようにしたい.
+         */
+        val spinnerItems = arrayOf(
+            "タスク",
+            "仕事",
+            "プライベート",
+            "買い物",
+            "その他"
+        )
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +66,13 @@ class MainActivity : AppCompatActivity() {
         // 初期化設定.
         mRealm = Realm.getDefaultInstance()
         mTaskAdapter = TaskAdapter(this@MainActivity)
+
+
+        // スピナー設定.
+        val spinnerAdapter = ArrayAdapter(
+            applicationContext, android.R.layout.simple_spinner_item, spinnerItems)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spMainCategory.adapter = spinnerAdapter
 
         // リスナーセット
         setListener()
@@ -62,12 +90,12 @@ class MainActivity : AppCompatActivity() {
 
 
     /**
-     * リストの再描画を行う.
+     * リスト再描画(全件取得)
      */
     private fun reloadListView() {
         Log.d(TAG, "$CLASS_NAME.reloadListView")
 
-        // Realmから全てのデータを取得し、新しい日時順(降順)に並べた結果を取得.
+        // Realmから全データを取得し、新しい日時順(降順)に並べた結果を取得.
         val taskRealmResults =
             mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
 
@@ -77,6 +105,27 @@ class MainActivity : AppCompatActivity() {
         lvTask.adapter = mTaskAdapter
         // アダプタに変更を知らせて更新を行う.
         mTaskAdapter.notifyDataSetChanged()
+    }
+
+
+    /**
+     * 検索カテゴリーに一致するリストを取得し再描画.
+     */
+    private fun reloadTargetListView() {
+        // カテゴリーが一致するタスクを取得.
+        val hitTasks = mRealm.where(Task::class.java)
+            .equalTo("category", mSearchCategory).findAll()
+
+        // 取得結果をtaskListとしてセット.
+        mTaskAdapter.taskList = mRealm.copyFromRealm(hitTasks)
+        // Taskのリストビュー用のアダプタを渡す.
+        lvTask.adapter = mTaskAdapter
+        // アダプタに変更を知らせて更新を行う.
+        mTaskAdapter.notifyDataSetChanged()
+
+        if(hitTasks.size == 0){
+            Toast.makeText(this,"一致するタスクはありません",Toast.LENGTH_SHORT).show()
+        }
     }
 
 
@@ -92,12 +141,14 @@ class MainActivity : AppCompatActivity() {
             reloadListView()
         }
 
+
         // フローティングボタンクリックリスナー
         fabAdd.setOnClickListener { view ->
             // 新規タスク画面起動.
             val newTaskIntent = Intent(this@MainActivity, InputActivity::class.java)
             startActivity(newTaskIntent)
         }
+
 
         // リストビュークリックリスナー
         lvTask.setOnItemClickListener { parent, view, position, id ->
@@ -108,6 +159,7 @@ class MainActivity : AppCompatActivity() {
             editIntent.putExtra(EXTRA_INTENT_TASK, task.id)
             startActivity(editIntent)
         }
+
 
         // リストビュー長タップリスナー
         lvTask.setOnItemLongClickListener { parent, view, position, id ->
@@ -140,6 +192,37 @@ class MainActivity : AppCompatActivity() {
 
             true
         }
+
+
+        // スピナー選択.
+        spMainCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            // アイテム選択
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val spinnerParent = parent as Spinner
+                val item = spinnerParent.selectedItem as String
+                mSearchCategory = item
+            }
+            // アイテム未選択
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // ここtでは特に何もしない
+            }
+        }
+
+
+        // 検索ボタンクリックリスナー.
+        btSearch.setOnClickListener { view ->
+            if (btSearch.text == "Search") {
+                // 検索対象を取得して再描画.
+                reloadTargetListView()
+                btSearch.text = "Revert"
+            } else {
+                // 全件取得して再描画.
+                reloadListView()
+                btSearch.text = "Search"
+            }
+        }
+
     }
 
     /**

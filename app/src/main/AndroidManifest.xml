@@ -17,11 +17,9 @@
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".InputActivity"
             android:label="タスク"
@@ -31,6 +29,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="jp.techacademy.mohri.shuto.taskapp.MainActivity" />
         </activity>
+        <activity
+            android:name=".CategoryActivity"
+            android:label="カテゴリー"
+            android:parentActivityName=".InputActivity"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
 
         <receiver android:name=".TaskAlarmReceiver" />
     </application>

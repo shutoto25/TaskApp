@@ -64,4 +64,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/tvCategory" />
+
+    <Button
+        android:id="@+id/btAddCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/spCategory"
+        android:text="カテゴリ追加" />
 </RelativeLayout>

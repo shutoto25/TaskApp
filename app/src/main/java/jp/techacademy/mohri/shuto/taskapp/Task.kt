@@ -14,7 +14,7 @@ open class Task : RealmObject(), Serializable {
     /**
      * カテゴリー
      */
-    var category: String = ""
+    var category: Category? = null
     /**
      * タイトル
      */

@@ -43,20 +43,6 @@ class MainActivity : AppCompatActivity() {
      */
     private var mSearchCategory = ""
 
-    companion object {
-        /**
-         * スピナーアイテム.
-         * TODO 自分で追加編集できるようにしたい.
-         */
-        val spinnerItems = arrayOf(
-            "タスク",
-            "仕事",
-            "プライベート",
-            "買い物",
-            "その他"
-        )
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "$CLASS_NAME.onCreate")
@@ -67,13 +53,6 @@ class MainActivity : AppCompatActivity() {
         mRealm = Realm.getDefaultInstance()
         mTaskAdapter = TaskAdapter(this@MainActivity)
 
-
-        // スピナー設定.
-        val spinnerAdapter = ArrayAdapter(
-            applicationContext, android.R.layout.simple_spinner_item, spinnerItems)
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spMainCategory.adapter = spinnerAdapter
-
         // リスナーセット
         setListener()
 
@@ -82,7 +61,30 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    override fun onStart() {
+        Log.d(TAG, "$CLASS_NAME.onStart")
+        super.onStart()
+
+        // スピナー設定を行う.
+        val realm = Realm.getDefaultInstance()
+        // カテゴリ一覧を取得.
+        val categoryItems = realm.where(Category::class.java).findAll()
+        val spinnerItems = mutableListOf<String>()
+        for(i in categoryItems){
+            val item = i.category
+            spinnerItems.add(item)
+        }
+        val spinnerAdapter = ArrayAdapter(
+            applicationContext, android.R.layout.simple_spinner_item, spinnerItems)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spSearchTask.adapter = spinnerAdapter
+
+        realm.close()
+    }
+
+
     override fun onDestroy() {
+        Log.d(TAG, "$CLASS_NAME.onDestroy")
         super.onDestroy()
 
         mRealm.close()
@@ -105,27 +107,6 @@ class MainActivity : AppCompatActivity() {
         lvTask.adapter = mTaskAdapter
         // アダプタに変更を知らせて更新を行う.
         mTaskAdapter.notifyDataSetChanged()
-    }
-
-
-    /**
-     * 検索カテゴリーに一致するリストを取得し再描画.
-     */
-    private fun reloadTargetListView() {
-        // カテゴリーが一致するタスクを取得.
-        val hitTasks = mRealm.where(Task::class.java)
-            .equalTo("category", mSearchCategory).findAll()
-
-        // 取得結果をtaskListとしてセット.
-        mTaskAdapter.taskList = mRealm.copyFromRealm(hitTasks)
-        // Taskのリストビュー用のアダプタを渡す.
-        lvTask.adapter = mTaskAdapter
-        // アダプタに変更を知らせて更新を行う.
-        mTaskAdapter.notifyDataSetChanged()
-
-        if(hitTasks.size == 0){
-            Toast.makeText(this,"一致するタスクはありません",Toast.LENGTH_SHORT).show()
-        }
     }
 
 
@@ -195,34 +176,41 @@ class MainActivity : AppCompatActivity() {
 
 
         // スピナー選択.
-        spMainCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        spSearchTask.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // アイテム選択
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val spinnerParent = parent as Spinner
                 val item = spinnerParent.selectedItem as String
                 mSearchCategory = item
+
+//                // カテゴリーが一致するタスクを取得.
+//                val hitCategory = mRealm.where(Category::class.java)
+//                    .equalTo("category", mSearchCategory).findFirst()
+//
+//                val allTasks = mRealm.where(Task::class.java).findAll()
+//                val hitTasks = mutableListOf<Task>()
+//                for(i in allTasks){
+//                    if(allTasks)
+//                }
+//
+//                // 取得結果をtaskListとしてセット.
+//                mTaskAdapter.taskList = mRealm.copyFromRealm(hitTasks)
+//                // Taskのリストビュー用のアダプタを渡す.
+//                lvTask.adapter = mTaskAdapter
+//                // アダプタに変更を知らせて更新を行う.
+//                mTaskAdapter.notifyDataSetChanged()
+//
+//                if(hitTasks.size == 0) {
+//                    Toast.makeText(this@MainActivity,
+//                        "一致するタスクはありません", Toast.LENGTH_SHORT).show()
+//                }
             }
             // アイテム未選択
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 // ここtでは特に何もしない
             }
         }
-
-
-        // 検索ボタンクリックリスナー.
-        btSearch.setOnClickListener { view ->
-            if (btSearch.text == "Search") {
-                // 検索対象を取得して再描画.
-                reloadTargetListView()
-                btSearch.text = "Revert"
-            } else {
-                // 全件取得して再描画.
-                reloadListView()
-                btSearch.text = "Search"
-            }
-        }
-
     }
 
     /**

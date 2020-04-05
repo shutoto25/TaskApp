@@ -2,8 +2,13 @@ package jp.techacademy.mohri.shuto.taskapp
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.content.Context.ALARM_SERVICE
 import android.content.Intent
 import android.os.Bundle
+import android.preference.PreferenceManager
+import android.support.v4.app.AppLaunchChecker
+import android.support.v4.content.ContextCompat.getSystemService
+import android.support.v4.content.ContextCompat.startActivity
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -53,31 +58,46 @@ class MainActivity : AppCompatActivity() {
         mRealm = Realm.getDefaultInstance()
         mTaskAdapter = TaskAdapter(this@MainActivity)
 
+        // 初回起動判定.
+        val preferences = Preferences(this)
+        if (preferences.isFirstBoot()) {
+            Log.d(TAG, "$CLASS_NAME.onCreate : first boot.")
+            // プレファレンスに初夏起動フラグを設定.
+            preferences.setFirstBootFlag()
+
+            // デフォルトカテゴリを設定.
+            mRealm.beginTransaction()
+            val category = Category()
+            category.id = 0
+            category.category = "タスク"
+            mRealm.copyToRealmOrUpdate(category)
+            mRealm.commitTransaction()
+        }
+
         // リスナーセット
         setListener()
-
         // リスト再描画
         reloadListView()
     }
 
 
-    override fun onStart() {
-        Log.d(TAG, "$CLASS_NAME.onStart")
-        super.onStart()
+    override fun onResume() {
+        Log.d(TAG, "$CLASS_NAME.onResume")
+        super.onResume()
 
         // スピナー設定を行う.
         val realm = Realm.getDefaultInstance()
         // カテゴリ一覧を取得.
         val categoryItems = realm.where(Category::class.java).findAll()
         val spinnerItems = mutableListOf<String>()
-        for(i in categoryItems){
+        for (i in categoryItems) {
             val item = i.category
             spinnerItems.add(item)
         }
         val spinnerAdapter = ArrayAdapter(
             applicationContext, android.R.layout.simple_spinner_item, spinnerItems)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spSearchTask.adapter = spinnerAdapter
+        spSearch.adapter = spinnerAdapter
 
         realm.close()
     }
@@ -111,6 +131,30 @@ class MainActivity : AppCompatActivity() {
 
 
     /**
+     * 検索カテゴリーに一致するリストを取得し再描画.
+     */
+    private fun reloadTargetListView() {
+        Log.d(TAG, "$CLASS_NAME.reloadTargetListView")
+        // カテゴリーが一致するタスクを取得.
+        val searchCategory =
+            mRealm.where(Category::class.java).equalTo("category", mSearchCategory).findFirst()
+        val tasks = mRealm.where(Task::class.java).findAll()
+        val targetTask = mutableListOf<Task>()
+        for (i in tasks) {
+            if (i.category == searchCategory) {
+                targetTask.add(i)
+            }
+        }
+        // 取得結果をtaskListとしてセット.
+        mTaskAdapter.taskList = mRealm.copyFromRealm(targetTask)
+        // Taskのリストビュー用のアダプタを渡す.
+        lvTask.adapter = mTaskAdapter
+        // アダプタに変更を知らせて更新を行う.
+        mTaskAdapter.notifyDataSetChanged()
+    }
+
+
+    /**
      * リスナーセット.
      */
     private fun setListener() {
@@ -124,7 +168,7 @@ class MainActivity : AppCompatActivity() {
 
 
         // フローティングボタンクリックリスナー
-        fabAdd.setOnClickListener { view ->
+        fabAddTask.setOnClickListener { view ->
             // 新規タスク画面起動.
             val newTaskIntent = Intent(this@MainActivity, InputActivity::class.java)
             startActivity(newTaskIntent)
@@ -176,49 +220,49 @@ class MainActivity : AppCompatActivity() {
 
 
         // スピナー選択.
-        spSearchTask.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        spSearch.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // アイテム選択
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val spinnerParent = parent as Spinner
-                val item = spinnerParent.selectedItem as String
-                mSearchCategory = item
 
-//                // カテゴリーが一致するタスクを取得.
-//                val hitCategory = mRealm.where(Category::class.java)
-//                    .equalTo("category", mSearchCategory).findFirst()
-//
-//                val allTasks = mRealm.where(Task::class.java).findAll()
-//                val hitTasks = mutableListOf<Task>()
-//                for(i in allTasks){
-//                    if(allTasks)
-//                }
-//
-//                // 取得結果をtaskListとしてセット.
-//                mTaskAdapter.taskList = mRealm.copyFromRealm(hitTasks)
-//                // Taskのリストビュー用のアダプタを渡す.
-//                lvTask.adapter = mTaskAdapter
-//                // アダプタに変更を知らせて更新を行う.
-//                mTaskAdapter.notifyDataSetChanged()
-//
-//                if(hitTasks.size == 0) {
-//                    Toast.makeText(this@MainActivity,
-//                        "一致するタスクはありません", Toast.LENGTH_SHORT).show()
-//                }
+                if (btSearch.text == "戻す") {
+                    // 一旦表示をデフォルト状態に戻す.
+                    reloadListView()
+                    btSearch.text = "検索"
+                }
+                mSearchCategory = spinnerParent.selectedItem as String
             }
+
             // アイテム未選択
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 // ここtでは特に何もしない
             }
         }
+
+
+        // 検索ボタン.
+        btSearch.setOnClickListener { view ->
+            if (btSearch.text == "検索") {
+                // 一致するタスクを検索.
+                reloadTargetListView()
+                btSearch.text = "戻す"
+            } else {
+                // 全件表示.
+                reloadListView()
+                btSearch.text = "検索"
+            }
+        }
     }
+
 
     /**
      * Realmからタスクを削除するタイミングでアラームを解除.
      * @param task 長タップされたタスク.
-     *
      */
     private fun cancelAlarm(task: Task) {
+        Log.d(TAG, "$CLASS_NAME.cancelAlarm")
+
         //セットした時と同じIntent、PendingIntentを作成.
         val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
         val resultPendingIntent = PendingIntent.getBroadcast(

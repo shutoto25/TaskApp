@@ -1,9 +1,6 @@
 package jp.techacademy.mohri.shuto.taskapp
 
-import android.app.AlarmManager
-import android.app.DatePickerDialog
-import android.app.PendingIntent
-import android.app.TimePickerDialog
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -24,15 +21,26 @@ class InputActivity : AppCompatActivity() {
      */
     private val CLASS_NAME = "InputActivity"
     /**
-     * 各種日時情報
+     * Realm.
+     */
+    private lateinit var mRealm: Realm
+    /**
+     * タスク.
+     */
+    private var mTask: Task? = null
+    /**
+     * 各種日時情報(年、月、日、時、分)
      */
     private var mYear = 0
     private var mMonth = 0
     private var mDay = 0
     private var mHour = 0
     private var mMinute = 0
-    private var mTask: Task? = null
-    private var mSetCategory = ""
+    /**
+     * 選択カテゴリ.
+     */
+    private var mClickCategory = ""
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "$CLASS_NAME.onCreate")
@@ -49,15 +57,13 @@ class InputActivity : AppCompatActivity() {
             supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         }
 
-        // Extra情報からTaskのidを取得して、idからTaskのインスタンスを取得する
+        // Extra情報からTaskのidを取得.
         val intent = intent
         val taskId = intent.getIntExtra(EXTRA_INTENT_TASK, -1)
-
         // このスレッドのためのRealmインスタンスを取得
-        val realm = Realm.getDefaultInstance()
-        // 取得idと一致する検索対象を一件を取得.
-        mTask = realm.where(Task::class.java).equalTo("id", taskId).findFirst()
-        realm.close()
+        mRealm = Realm.getDefaultInstance()
+        // idと一致するTaskインスタンスを一件取得.
+        mTask = mRealm.where(Task::class.java).equalTo("id", taskId).findFirst()
 
         if (mTask == null) {
             // 新規作成時.
@@ -71,9 +77,6 @@ class InputActivity : AppCompatActivity() {
         } else {
             // タスク内容更新時.
             // 登録済みのタスク内容を取得.
-            val cate = mTask!!.category
-            val id = cate!!.id
-            spCategory.setSelection(id, false)
             etTitle.setText(mTask!!.title)
             etContent.setText(mTask!!.contents)
 
@@ -98,14 +101,12 @@ class InputActivity : AppCompatActivity() {
     }
 
 
-    override fun onStart() {
-        Log.d(TAG, "$CLASS_NAME.onStart")
-        super.onStart()
+    override fun onResume() {
+        Log.d(TAG, "★$CLASS_NAME.onResume")
+        super.onResume()
 
-        // スピナー設定を行う.
-        val realm = Realm.getDefaultInstance()
-        // カテゴリ一覧を取得.
-        val categoryItems = realm.where(Category::class.java).findAll()
+        // カテゴリ一覧を取得してスピナーのアダプタにセット.
+        val categoryItems = mRealm.where(Category::class.java).findAll()
         val spinnerItems = mutableListOf<String>()
         for (i in categoryItems) {
             val item = i.category
@@ -117,7 +118,18 @@ class InputActivity : AppCompatActivity() {
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spCategory.adapter = spinnerAdapter
 
-        realm.close()
+        if (mTask != null) {
+            // カテゴリーセット.
+            spCategory.setSelection(mTask!!.category!!.id, false)
+        }
+    }
+
+
+    override fun onDestroy() {
+        Log.d(TAG, "★$CLASS_NAME.onDestroy")
+        super.onDestroy()
+
+        mRealm.close()
     }
 
 
@@ -127,16 +139,14 @@ class InputActivity : AppCompatActivity() {
     private fun addTask() {
         Log.d(TAG, "$CLASS_NAME.addTask")
 
-        // このスレッドのためのRealmインスタンスを取得
-        val realm = Realm.getDefaultInstance()
         // メモ：保存されたオブジェクトのプロパティ変更する場合は必ずトランザクション内で行う必要がある.
-        realm.beginTransaction()
+        mRealm.beginTransaction()
 
         if (mTask == null) {
             // 新規インスタンス作成.
             mTask = Task()
             // タスクを全件取得.
-            val taskRealmResult = realm.where(Task::class.java).findAll()
+            val taskRealmResult = mRealm.where(Task::class.java).findAll()
             val identifier: Int = taskRealmResult.max("id")?.let {
                 taskRealmResult.max("id")!!.toInt() + 1
             } ?: 0
@@ -145,7 +155,7 @@ class InputActivity : AppCompatActivity() {
         }
         // カテゴリー設定.
         mTask!!.category =
-            realm.where(Category::class.java).equalTo("category", mSetCategory).findFirst()
+            mRealm.where(Category::class.java).equalTo("category", mClickCategory).findFirst()
 
         // タイトル設定.
         val inputTitle = etTitle.text.toString()
@@ -160,13 +170,16 @@ class InputActivity : AppCompatActivity() {
         val date = calendar.time
         mTask!!.date = date
 
-        realm.copyToRealmOrUpdate(mTask!!)
-        realm.commitTransaction()
+        mRealm.copyToRealmOrUpdate(mTask!!)
+        mRealm.commitTransaction()
 
-        realm.close()
-
-        // PendingIntentで指定時間にアラームを設定
-        setAlarm(calendar)
+        // リマンダー登録.
+        val nowCalendar = Calendar.getInstance()
+        if (nowCalendar.time.before(date)) {
+            // 登録日時が過去の場合は登録直後にリマインドされてしまう為
+            // 未来時刻の場合にのみリマンダーを登録する.
+            setAlarm(calendar)
+        }
     }
 
 
@@ -177,6 +190,7 @@ class InputActivity : AppCompatActivity() {
     private fun setAlarm(calendar: Calendar) {
         Log.d(TAG, "$CLASS_NAME.setAlarm")
 
+        // PendingIntentで指定時間にアラームを設定
         val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
         resultIntent.putExtra(EXTRA_INTENT_TASK, mTask!!.id)
         val resultPendingIntent = PendingIntent.getBroadcast(
@@ -238,11 +252,9 @@ class InputActivity : AppCompatActivity() {
         spCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // アイテム選択
             override fun onItemSelected(
-                parent: AdapterView<*>?, view: View?, position: Int, id: Long
-            ) {
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val spinnerParent = parent as Spinner
-                val item = spinnerParent.selectedItem as String
-                mSetCategory = item
+                mClickCategory = spinnerParent.selectedItem as String
             }
 
             // アイテム未選択

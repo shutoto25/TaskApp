@@ -25,12 +25,43 @@
         android:layout_below="@id/etTitle"
         android:hint="内容" />
 
+    <TextView
+        android:id="@+id/tvCategory"
+        android:layout_marginTop="30dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/etContent"
+        android:text="★カテゴリー選択：" />
+
+    <Spinner
+        android:id="@+id/spCategory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@id/btAddCategory"
+        android:layout_below="@+id/tvCategory" />
+
+    <Button
+        android:id="@+id/btAddCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/tvCategory"
+        android:text="新規カテゴリ追加" />
+
+    <TextView
+        android:id="@+id/tvReminder"
+        android:layout_marginTop="60dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/spCategory"
+        android:text="★リマインド時刻：" />
+
     <Button
         android:id="@+id/btDate"
         style="@style/Widget.AppCompat.Button.Borderless"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/etContent"
+        android:layout_below="@id/tvReminder"
         android:layout_alignParentStart="true"
         android:layout_toLeftOf="@id/btTimes"
         android:text="----/--/--" />
@@ -40,35 +71,16 @@
         style="@style/Widget.AppCompat.Button.Borderless"
         android:layout_width="96dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/etContent"
+        android:layout_below="@id/tvReminder"
         android:layout_alignParentRight="true"
         android:text="--:--" />
 
     <Button
         android:id="@+id/btDone"
-        android:layout_width="96dp"
+        android:layout_marginTop="60dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/btTimes"
-        android:layout_alignParentRight="true"
-        android:text="決定" />
+        android:text="完了" />
 
-    <TextView
-        android:id="@+id/tvCategory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/btDate"
-        android:text="カテゴリー選択：" />
-
-    <Spinner
-        android:id="@+id/spCategory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/tvCategory" />
-
-    <Button
-        android:id="@+id/btAddCategory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/spCategory"
-        android:text="カテゴリ追加" />
 </RelativeLayout>

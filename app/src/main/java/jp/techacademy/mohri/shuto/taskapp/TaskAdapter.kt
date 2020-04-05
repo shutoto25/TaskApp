@@ -62,7 +62,6 @@ class TaskAdapter(context: Context) : BaseAdapter() {
         Log.d(TAG, "$CLASS_NAME.getView")
 
         // Viewを再利用して描画する仕組みがあるのでnull判定する.
-        // TODO 表示しよとしている行がnullの場合inflateする->枠が足りない場合は増やすってこと？
         val view: View =
             convertView ?: mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null)
 

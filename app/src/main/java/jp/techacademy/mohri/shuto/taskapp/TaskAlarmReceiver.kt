@@ -18,6 +18,19 @@ class TaskAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.d(TAG, "TaskAlarmReceiver.onReceive")
 
+        // Extra情報からTaskのidを取得して、idからTaskのインスタンスを取得する
+        val taskId = intent!!.getIntExtra(EXTRA_INTENT_TASK, -1)
+
+        createNotificationChannel(context, taskId)
+    }
+
+
+    /**
+     * NotificationChannel登録.
+     */
+    private fun createNotificationChannel(context: Context?, taskId: Int) {
+        Log.d(TAG, "TaskAlarmReceiver.createNotificationChannel")
+
         val notificationManager =
             context!!.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -32,7 +45,6 @@ class TaskAlarmReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // TODO 処理をもう少し噛み砕きたい.できたらクラス化したい.
         // 通知設定.
         val builder = NotificationCompat.Builder(context, "default")
         builder.setSmallIcon(R.drawable.small_icon)
@@ -40,9 +52,6 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         builder.setWhen(System.currentTimeMillis())
         builder.setDefaults(Notification.DEFAULT_ALL)
         builder.setAutoCancel(true)
-
-        // Extra情報からTaskのidを取得して、idからTaskのインスタンスを取得する
-        val taskId = intent!!.getIntExtra(EXTRA_INTENT_TASK, -1)
 
         // このスレッドのためのRealmインスタンスを取得
         val realm = Realm.getDefaultInstance()
